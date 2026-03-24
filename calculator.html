@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Jelly Glass Calculator</title>
+
+    <style>
+      body {
+        margin: 0;
+        font-family: system-ui;
+        background: linear-gradient(145deg, #0b1020, #111a33);
+        display: grid;
+        place-items: center;
+        height: 100vh;
+        color: white;
+      }
+
+      /* --- CALCULATOR --- */
+      .calculator {
+        width: 320px;
+        padding: 20px;
+        border-radius: 30px;
+        backdrop-filter: blur(25px);
+        background: rgba(255, 255, 255, 0.1);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+      }
+
+      /* --- DISPLAY --- */
+      .display {
+        padding: 15px;
+        border-radius: 20px;
+        background: rgba(0, 0, 0, 0.2);
+        margin-bottom: 15px;
+        text-align: right;
+      }
+
+      .expression {
+        opacity: 0.7;
+        min-height: 20px;
+      }
+
+      .result {
+        font-size: 2rem;
+        font-weight: bold;
+      }
+
+      /* --- BUTTON GRID --- */
+      .buttons {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+      }
+
+      /* --- BUTTON --- */
+      button {
+        position: relative;
+        overflow: hidden;
+        padding: 15px;
+        border-radius: 15px;
+        border: none;
+        font-size: 1.1rem;
+        cursor: pointer;
+        background: rgba(255, 255, 255, 0.15);
+        color: white;
+        transition: transform 0.15s ease;
+      }
+
+      /* 🟣 JELLY BOUNCE */
+      button:active {
+        animation: jelly 0.35s ease;
+      }
+
+      @keyframes jelly {
+        0% {
+          transform: scale(1, 1);
+        }
+        30% {
+          transform: scale(1.15, 0.85);
+        }
+        50% {
+          transform: scale(0.9, 1.1);
+        }
+        70% {
+          transform: scale(1.05, 0.95);
+        }
+        100% {
+          transform: scale(1, 1);
+        }
+      }
+
+      /* 🌊 RIPPLE EFFECT */
+      button span {
+        position: absolute;
+        border-radius: 50%;
+        transform: scale(0);
+        animation: ripple 0.6s linear;
+        background: rgba(255, 255, 255, 0.5);
+      }
+
+      @keyframes ripple {
+        to {
+          transform: scale(4);
+          opacity: 0;
+        }
+      }
+
+      /* COLORS */
+      .op {
+        background: rgba(124, 92, 255, 0.4);
+      }
+      .equal {
+        background: linear-gradient(135deg, #7c5cff, #29d3ff);
+      }
+      .clear {
+        background: rgba(255, 100, 120, 0.6);
+      }
+
+      .wide {
+        grid-column: span 2;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="calculator">
+      <div class="display">
+        <div id="expression" class="expression"></div>
+        <div id="result" class="result">0</div>
+      </div>
+
+      <div class="buttons">
+        <button class="clear" onclick="handleClick(event, clearAll)">AC</button>
+        <button onclick="handleClick(event, backspace)">⌫</button>
+        <button onclick="handleClick(event, () => append('%'))">%</button>
+        <button class="op" onclick="handleClick(event, () => append('/'))">
+          ÷
+        </button>
+
+        <button onclick="handleClick(event, () => append('7'))">7</button>
+        <button onclick="handleClick(event, () => append('8'))">8</button>
+        <button onclick="handleClick(event, () => append('9'))">9</button>
+        <button class="op" onclick="handleClick(event, () => append('*'))">
+          ×
+        </button>
+
+        <button onclick="handleClick(event, () => append('4'))">4</button>
+        <button onclick="handleClick(event, () => append('5'))">5</button>
+        <button onclick="handleClick(event, () => append('6'))">6</button>
+        <button class="op" onclick="handleClick(event, () => append('-'))">
+          −
+        </button>
+
+        <button onclick="handleClick(event, () => append('1'))">1</button>
+        <button onclick="handleClick(event, () => append('2'))">2</button>
+        <button onclick="handleClick(event, () => append('3'))">3</button>
+        <button class="op" onclick="handleClick(event, () => append('+'))">
+          +
+        </button>
+
+        <button class="wide" onclick="handleClick(event, () => append('0'))">
+          0
+        </button>
+        <button onclick="handleClick(event, () => append('.'))">.</button>
+        <button class="equal" onclick="handleClick(event, calculate)">=</button>
+      </div>
+    </div>
+
+    <script>
+      let calculation = "";
+      const expressionEl = document.getElementById("expression");
+      const resultEl = document.getElementById("result");
+
+      /* --- RIPPLE HANDLER --- */
+      function handleClick(e, action) {
+        createRipple(e);
+        action();
+      }
+
+      function createRipple(e) {
+        const button = e.currentTarget;
+        const circle = document.createElement("span");
+
+        const rect = button.getBoundingClientRect();
+        const size = Math.max(rect.width, rect.height);
+
+        circle.style.width = circle.style.height = size + "px";
+        circle.style.left = e.clientX - rect.left - size / 2 + "px";
+        circle.style.top = e.clientY - rect.top - size / 2 + "px";
+
+        button.appendChild(circle);
+
+        setTimeout(() => circle.remove(), 600);
+      }
+
+      /* --- DISPLAY --- */
+      function updateDisplay() {
+        expressionEl.textContent = calculation;
+
+        const preview = safeCompute(calculation);
+
+        if (preview === null) {
+          resultEl.textContent = calculation ? "" : "0";
+        } else {
+          resultEl.textContent = preview;
+        }
+      }
+
+      /* --- FUNCTIONS --- */
+      function append(value) {
+        calculation += value;
+        updateDisplay();
+      }
+
+      function clearAll() {
+        calculation = "";
+        updateDisplay();
+      }
+
+      function backspace() {
+        calculation = calculation.slice(0, -1);
+        updateDisplay();
+      }
+
+      function calculate() {
+        const result = safeCompute(calculation);
+        if (result !== null) {
+          calculation = String(result);
+          updateDisplay();
+        }
+      }
+
+      /* --- SAFE COMPUTE --- */
+      function safeCompute(expr) {
+        try {
+          if (!expr.trim()) return 0;
+
+          if (/[+\-*/.]$/.test(expr)) return null;
+
+          let open = (expr.match(/\(/g) || []).length;
+          let close = (expr.match(/\)/g) || []).length;
+          if (open !== close) return null;
+
+          let cleaned = expr.replace(/%/g, "/100");
+
+          if (!/^[0-9+\-*/().\s]+$/.test(cleaned)) return null;
+
+          const value = Function(`"use strict"; return (${cleaned})`)();
+
+          if (!Number.isFinite(value)) return null;
+
+          return Number.isInteger(value)
+            ? value
+            : parseFloat(value.toFixed(10));
+        } catch {
+          return null;
+        }
+      }
+
+      /* --- KEYBOARD --- */
+      document.addEventListener("keydown", (e) => {
+        const keys = "0123456789+-*/.%()";
+
+        if (keys.includes(e.key)) append(e.key);
+        else if (e.key === "Enter") calculate();
+        else if (e.key === "Backspace") backspace();
+        else if (e.key === "Escape") clearAll();
+      });
+
+      updateDisplay();
+    </script>
+  </body>
+</html>
